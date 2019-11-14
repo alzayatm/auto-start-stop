@@ -1,0 +1,49 @@
+service: AutoStartStop
+
+provider:
+  name: aws
+  runtime: python3.7
+  deploymentBucket: autostartstop-test-${opt:region}-${opt:stage}
+  stackTags:
+    application: AutoStartStop
+    env: ${opt:stage}
+    group: test
+  iamRoleStatements:
+    - Effect: Allow
+      Resource: "*"
+      Action:
+        - "ec2:DescribeInstances"
+        - "ec2:StartInstances"
+        - "ec2:StopInstances"
+        - "ec2:CreateTags"
+        - "ec2:DescribeTags"
+        - "ec2:DeleteTags"
+
+package:
+  exclude:
+    - .git/**
+
+# cron(Minutes Hours DayOfMonth Month DayOfWeek Year)
+# All times in UTC based on 24 hr clock
+functions:
+  start_servers:
+    timeout: 60
+    handler: handler.start_servers
+    events:
+      # starts at 6 AM EST
+      - schedule: cron(0 10 ? * MON-FRI *)
+  stop_servers:
+    timeout: 60
+    handler: handler.stop_servers
+    events:
+      # shuts off at 9 PM EST
+      - schedule: cron(0 1 ? * MON-SAT *)
+ 
+  
+
+plugins:
+  - serverless-python-requirements
+
+custom:
+  pythonRequirements:
+    dockerizePip: true
